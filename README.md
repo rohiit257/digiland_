@@ -149,10 +149,3 @@ Feel free to contribute to this project! Fork the repo, make changes, and submit
 ## 📜 License
 MIT License. Free to use & modify!
 
----
-
-## 🌎 Connect with Me
-👨‍💻 **GitHub**: [yourusername](https://github.com/yourusername)  
-💼 **LinkedIn**: [Your Name](https://linkedin.com/in/yourname)  
-📧 **Email**: your.email@example.com  
-
