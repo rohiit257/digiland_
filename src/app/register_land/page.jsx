@@ -7,8 +7,19 @@ import { WalletContext } from "@/context/wallet";
 import contractABI from "../landregistry.json";
 import { uploadFileToIPFS } from "../pinata";
 import Navbar from "@/app/components/Navbar";
+import Sidebar from "@/app/components/Sidebar";
+import { toast } from "sonner";
 
 const CONTRACT_ADDRESS = contractABI.address;
+
+
+
+const sidebarLinks = [
+  { name: "My Properties", href: "/user_dashboard" },
+  { name: "KYC", href: "/user_dashboard/complete_registration" },
+  { name: "Register Land", href: "/register_land" },
+  { name: "Transfer Ownership", href: "/user_dashboard/transfer_ownership" },
+];
 
 export default function RegisterLand() {
   const { isConnected, signer, userAddress } = useContext(WalletContext);
@@ -21,7 +32,7 @@ export default function RegisterLand() {
 
   useEffect(() => {
     if (!isConnected || !signer) {
-      alert("Please connect your wallet.");
+      toast("Please connect your wallet.");
     }
   }, [isConnected, signer]);
 
@@ -52,10 +63,9 @@ export default function RegisterLand() {
       const response = await uploadFileToIPFS(data);
       if (response.success) {
         setDocumentHash(response.pinataURL);
-        console.log("Document Hash:", response.pinataURL);
-        alert("Document uploaded successfully!");
+        toast("Document uploaded successfully!");
       } else {
-        alert("Error uploading document.");
+        toast("Error uploading document.");
       }
     } catch (e) {
       console.error("Error during file upload:", e);
@@ -65,22 +75,12 @@ export default function RegisterLand() {
   }
 
   async function registerProperty() {
-    console.log("Registering Property with:", { propertyNumber, location, documentHash, signer, userAddress });
-
     if (!isConnected || !signer) {
-      alert("Wallet not connected. Please connect your wallet.");
+      toast("Wallet not connected. Please connect your wallet.");
       return;
     }
-    if (!propertyNumber.trim()) {
-      alert("Please enter a valid Property Number.");
-      return;
-    }
-    if (!location.trim()) {
-      alert("Please enter a valid location.");
-      return;
-    }
-    if (!documentHash.trim()) {
-      alert("Please upload a document.");
+    if (!propertyNumber.trim() || !location.trim() || !documentHash.trim()) {
+      toast("All fields are required.");
       return;
     }
 
@@ -89,83 +89,75 @@ export default function RegisterLand() {
       const contract = new ethers.Contract(CONTRACT_ADDRESS, contractABI.abi, signer);
       const tx = await contract.registerProperty(propertyNumber, location, documentHash);
       await tx.wait();
-      alert("Property Registered Successfully!");
-      router.push("/dashboard");
+      toast("Property Registered Successfully!");
+      router.push("/user_dashboard");
     } catch (error) {
       console.error("Error registering property:", error);
-      alert("Error registering property. Check the console for details.");
+      toast("Error registering property. Check the console for details.");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <>
-      <Navbar />
-      <div className="flex min-h-screen bg-gray-900 text-white flex-col items-center justify-center p-6">
-        <h1 className="text-4xl font-bold mb-6">Register Land</h1>
-
-        <div className="bg-gray-800 p-6 rounded-lg shadow-md w-full max-w-lg">
-          {/* Property Number */}
-          <label className="block text-sm font-medium mb-2">Property Number</label>
-          <input
-            type="text"
-            className="w-full p-2 rounded-md bg-gray-700 border border-gray-600 text-white mb-4"
-            placeholder="Enter Property Number"
-            value={propertyNumber}
-            onChange={(e) => setPropertyNumber(e.target.value)}
-          />
-
-          {/* Location */}
-          <label className="block text-sm font-medium mb-2">Location</label>
-          <input
-            type="text"
-            className="w-full p-2 rounded-md bg-gray-700 border border-gray-600 text-white mb-2"
-            placeholder="Enter location"
-            value={location}
-            onChange={(e) => {
-              setLocation(e.target.value);
-              fetchSuggestions(e.target.value);
-            }}
-          />
-          {suggestions.length > 0 && (
-            <ul className="bg-gray-700 border border-gray-600 text-white rounded-md overflow-hidden">
-              {suggestions.map((suggestion, index) => (
-                <li
-                  key={index}
-                  className="p-2 hover:bg-gray-600 cursor-pointer"
-                  onClick={() => {
-                    setLocation(suggestion.display_name);
-                    setSuggestions([]);
-                  }}
-                >
-                  {suggestion.display_name}
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {/* Upload Document */}
-          <label className="block text-sm font-medium mt-4 mb-2">Upload Document</label>
-          <input
-            type="file"
-            className="w-full p-2 rounded-md bg-gray-700 border border-gray-600 text-white mb-4"
-            onChange={uploadDocument}
-          />
-          {documentHash && (
-            <p className="text-green-400 mb-4">Document uploaded: {documentHash}</p>
-          )}
-
-          {/* Register Button */}
-          <button
-            onClick={registerProperty}
-            className="w-full bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-md mt-4"
-            disabled={loading}
-          >
-            {loading ? "Registering..." : "Register Land"}
-          </button>
+    <div className="flex min-h-screen bg-zinc-100 text-zinc-900">
+      <Sidebar title="User Panel" links={sidebarLinks} />
+      <div className="flex-1 flex flex-col">
+        <div className="flex flex-col items-center justify-center p-6">
+          <h1 className="text-4xl font-bold mt-10 mb-6">Register Land</h1>
+          <div className="bg-white p-6 rounded-lg mt-7 shadow-md w-full max-w-lg border border-zinc-300">
+            <label className="block text-sm font-medium mb-2">Property Number</label>
+            <input
+              type="text"
+              className="w-full p-2 rounded-md bg-zinc-200 border border-zinc-300 mb-4"
+              placeholder="Enter Property Number"
+              value={propertyNumber}
+              onChange={(e) => setPropertyNumber(e.target.value)}
+            />
+            <label className="block text-sm font-medium mb-2">Location</label>
+            <input
+              type="text"
+              className="w-full p-2 rounded-md bg-zinc-200 border border-zinc-300 mb-2"
+              placeholder="Enter location"
+              value={location}
+              onChange={(e) => {
+                setLocation(e.target.value);
+                fetchSuggestions(e.target.value);
+              }}
+            />
+            {suggestions.length > 0 && (
+              <ul className="bg-zinc-200 border border-zinc-300 rounded-md overflow-hidden">
+                {suggestions.map((suggestion, index) => (
+                  <li
+                    key={index}
+                    className="p-2 hover:bg-zinc-300 cursor-pointer"
+                    onClick={() => {
+                      setLocation(suggestion.display_name);
+                      setSuggestions([]);
+                    }}
+                  >
+                    {suggestion.display_name}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <label className="block text-sm font-medium mt-4 mb-2">Upload Document</label>
+            <input
+              type="file"
+              className="w-full p-2 rounded-md bg-zinc-200 border border-zinc-300 mb-4"
+              onChange={uploadDocument}
+            />
+            {documentHash && <p className="text-green-600 mb-4">Document uploaded successfully!</p>}
+            <button
+              onClick={registerProperty}
+              className="w-full bg-zinc-900 hover:bg-zinc-700 text-white py-2 px-4 rounded-md mt-4"
+              disabled={loading}
+            >
+              {loading ? "Registering..." : "Register Land"}
+            </button>
+          </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
