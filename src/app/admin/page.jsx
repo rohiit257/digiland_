@@ -13,7 +13,7 @@ import { toast } from "sonner";
 
 const CONTRACT_ADDRESS = contractABI.address;
 const ADMIN_ADDRESS = "0xf29bbCFB987F3618515ddDe75D6CAd34cc1855D7";
-const GEMINI_API_KEY = "AIzaSyAdPHUPF3huKtTaD4pbbpSQsKsOppJY3GA"; // Replace with your actual API key
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY; // Replace with your actual API key
 
 const sidebarLinks = [
   { name: "Dashboard", href: "/admin" },
