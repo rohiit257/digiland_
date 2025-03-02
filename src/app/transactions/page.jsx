@@ -5,9 +5,14 @@ import { ethers } from "ethers";
 import { WalletContext } from "@/context/wallet";
 import contractABI from "../landregistry.json";
 import Navbar from "../components/Navbar";
+import Sidebar from "../components/Sidebar";
 
 const CONTRACT_ADDRESS = contractABI.address;
 
+const sidebarLinks = [
+  { name: "Dashboard", href: "/admin" },
+  { name: "Transactions", href: "/transactions" },
+];
 export default function Transactions() {
   const { isConnected, signer } = useContext(WalletContext);
   const [transactions, setTransactions] = useState([]);
@@ -21,9 +26,13 @@ export default function Transactions() {
   async function fetchTransactionHistory() {
     if (!signer) return;
     try {
-      const contract = new ethers.Contract(CONTRACT_ADDRESS, contractABI.abi, signer);
+      const contract = new ethers.Contract(
+        CONTRACT_ADDRESS,
+        contractABI.abi,
+        signer
+      );
       const transactionData = await contract.getTransactionHistory();
-      
+
       console.log("Fetched Transactions:", transactionData); // 🔍 Debugging log
 
       if (!Array.isArray(transactionData)) {
@@ -41,30 +50,34 @@ export default function Transactions() {
   }
 
   return (
-    <>
-      <Navbar />
-      <div className="flex flex-col items-center min-h-screen bg-gray-900 text-white p-6">
-        <h1 className="text-4xl font-bold mb-6">Transaction History</h1>
+    <div className="flex bg-white text-zinc-900 min-h-screen">
+      <Sidebar title="Admin Panel" links={sidebarLinks} />{" "}
+      <div className="flex flex-col flex-1 p-6">
+        <h1 className="text-4xl font-bold mb-6 text-center">
+          Transaction History
+        </h1>
 
         {loading ? (
-          <p>Loading transactions...</p>
+          <p className="text-center">Loading transactions...</p>
         ) : transactions.length === 0 ? (
-          <p>No transactions found.</p>
+          <p className="text-center">No transactions found.</p>
         ) : (
-          <div className="overflow-x-auto w-full max-w-6xl">
-            <table className="w-full text-sm text-left border border-gray-700">
-              <thead className="bg-gray-800 text-white">
+          <div className="overflow-x-auto mt-4">
+            <table className="w-full text-sm text-left shadow-md bg-white text-zinc-900">
+              <thead className="bg-white text-zinc-900 border-b border-gray-400">
                 <tr>
-                  <th className="px-4 py-2 border border-gray-700">Property ID</th>
-                  <th className="px-4 py-2 border border-gray-700">Sender</th>
-                  <th className="px-4 py-2 border border-gray-700">Receiver</th>
-                  <th className="px-4 py-2 border border-gray-700">Transaction Hash</th>
+                  <th className="px-4 py-2">Property ID</th>
+                  <th className="px-4 py-2">Sender</th>
+                  <th className="px-4 py-2">Receiver</th>
+                  <th className="px-4 py-2">Transaction Hash</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="bg-white text-zinc-900 divide-y divide-gray-300">
                 {transactions.map((tx, index) => (
-                  <tr key={index} className="border border-gray-700">
-                    <td className="px-4 py-2">{tx.propertyId?.toString() || "N/A"}</td>
+                  <tr key={index} className="hover:bg-gray-100 transition-all">
+                    <td className="px-4 py-2">
+                      {tx.propertyId?.toString() || "N/A"}
+                    </td>
                     <td className="px-4 py-2">{tx.sender || "N/A"}</td>
                     <td className="px-4 py-2">{tx.receiver || "N/A"}</td>
                     <td className="px-4 py-2">
@@ -73,7 +86,7 @@ export default function Transactions() {
                           href={`https://etherscan.io/tx/${tx.txHash}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-400 hover:underline"
+                          className="text-blue-500 hover:underline"
                         >
                           {tx.txHash.substring(0, 10)}...
                         </a>
@@ -88,6 +101,6 @@ export default function Transactions() {
           </div>
         )}
       </div>
-    </>
+    </div>
   );
 }

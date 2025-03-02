@@ -8,10 +8,17 @@ import contractABI from "../landregistry.json";
 import GetIpfsUrlFromPinata from "@/app/utils";
 import Link from "next/link";
 import Navbar from "../components/Navbar";
+import Sidebar from "../components/Sidebar";
+import { toast } from "sonner";
 
 const CONTRACT_ADDRESS = contractABI.address;
 const ADMIN_ADDRESS = "0xf29bbCFB987F3618515ddDe75D6CAd34cc1855D7";
 const GEMINI_API_KEY = "AIzaSyAdPHUPF3huKtTaD4pbbpSQsKsOppJY3GA"; // Replace with your actual API key
+
+const sidebarLinks = [
+  { name: "Dashboard", href: "/admin" },
+  { name: "Transactions", href: "/transactions" },
+];
 
 export default function AdminDashboard() {
   const { isConnected, signer, userAddress } = useContext(WalletContext);
@@ -38,7 +45,11 @@ export default function AdminDashboard() {
 
   async function fetchProperties() {
     if (!signer) return;
-    const contract = new ethers.Contract(CONTRACT_ADDRESS, contractABI.abi, signer);
+    const contract = new ethers.Contract(
+      CONTRACT_ADDRESS,
+      contractABI.abi,
+      signer
+    );
     try {
       const propertiesList = await contract.getAllProperties();
       setProperties(propertiesList);
@@ -53,8 +64,13 @@ export default function AdminDashboard() {
   }
 
   async function verifyProperty(propertyId) {
-    if (!signer || userAddress.toLowerCase() !== ADMIN_ADDRESS.toLowerCase()) return;
-    const contract = new ethers.Contract(CONTRACT_ADDRESS, contractABI.abi, signer);
+    if (!signer || userAddress.toLowerCase() !== ADMIN_ADDRESS.toLowerCase())
+      return;
+    const contract = new ethers.Contract(
+      CONTRACT_ADDRESS,
+      contractABI.abi,
+      signer
+    );
     try {
       setLoading(true);
       const tx = await contract.verifyProperty(propertyId);
@@ -72,20 +88,30 @@ export default function AdminDashboard() {
   async function detectFraud(propertyId) {
     try {
       if (!signer) return;
-      const contract = new ethers.Contract(CONTRACT_ADDRESS, contractABI.abi, signer);
-  
+      const contract = new ethers.Contract(
+        CONTRACT_ADDRESS,
+        contractABI.abi,
+        signer
+      );
+
       // ✅ Explicitly call the correct function signature
-      const transactions = await contract["getTransactionHistory(uint256)"](propertyId);
-  
+      const transactions = await contract["getTransactionHistory(uint256)"](
+        propertyId
+      );
+
       console.log("Fetched Transactions:", transactions);
-  
+
       // Constructing transaction details for AI analysis
-      let transactionDetails = transactions.map(tx => `
+      let transactionDetails = transactions
+        .map(
+          (tx) => `
         - Transaction Hash: ${tx.txHash}
         - From: ${tx.sender}
         - To: ${tx.receiver}
-      `).join("\n");
-  
+      `
+        )
+        .join("\n");
+
       const prompt = `
         Analyze the ownership history of property ID ${propertyId}.
         The transaction history is as follows:
@@ -93,7 +119,7 @@ export default function AdminDashboard() {
   
         Based on this information, summarize if there is any suspicious activity in ownership transfers.
       `;
-  
+
       // 🔥 Send Request to Gemini AI
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
@@ -105,24 +131,25 @@ export default function AdminDashboard() {
           }),
         }
       );
-  
+
       const result = await response.json();
-      const responseText = result.candidates?.[0]?.content?.parts?.[0]?.text || "No fraud detected.";
-      
+      const responseText =
+        result.candidates?.[0]?.content?.parts?.[0]?.text ||
+        "No fraud detected.";
+
       setFraudResult(responseText);
-      alert("Fraud Analysis Complete: " + responseText);
+      toast("Fraud Analysis Complete: " + responseText);
     } catch (error) {
       console.error("Error analyzing fraud:", error);
     }
   }
-  
 
   return (
     <>
-      <Navbar />
-      <div className="flex min-h-screen bg-gray-900 text-white">
+      <div className="flex min-h-screen bg-slate-50 text-zinc-900">
         {/* Sidebar */}
-        <aside className="w-64 bg-gray-800 p-6 min-h-screen">
+        <Sidebar title="Admin Panel" links={sidebarLinks} />
+        {/* <aside className="w-64 bg-gray-800 p-6 min-h-screen">
           <h1 className="text-2xl font-bold text-center">Admin Panel</h1>
           <nav className="mt-6">
             <ul className="space-y-4">
@@ -138,44 +165,73 @@ export default function AdminDashboard() {
               </li>
             </ul>
           </nav>
-        </aside>
+        </aside> */}
 
         {/* Main Content */}
         <div className="flex-1 p-6">
           <h1 className="text-4xl font-bold text-center">Admin Dashboard</h1>
+          <h3 className="text-lg font-bold text-center m-5 text-zinc-500">Welcome {userAddress}</h3>
+
+          <div className="p-4 bg-white rounded-2xl shadow-md text-zinc-900 flex justify-between text-center mt-5">
+            <div className="p-4">
+              <h2 className="text-lg font-semibold">Total Properties</h2>
+              <p className="text-2xl font-bold">{totalProperties}</p>
+            </div>
+            <div className="p-4">
+              <h2 className="text-lg font-semibold">Registered Properties</h2>
+              <p className="text-2xl font-bold">{registeredProperties}</p>
+            </div>
+            <div className="p-4">
+              <h2 className="text-lg font-semibold">Unique Users</h2>
+              <p className="text-2xl font-bold">{uniqueUsers}</p>
+            </div>
+          </div>
 
           {/* Properties Table */}
-          <h2 className="text-2xl mt-10">Registered Properties</h2>
+          <h2 className="text-2xl text-zinc-500 font-bold mt-10">Registered Properties</h2>
           <div className="overflow-x-auto mt-4">
-            <table className="w-full text-sm text-left border border-gray-700">
-              <thead className="bg-gray-800 text-white">
+            <table className="w-full text-sm text-left rounded-2xl shadow-md">
+              <thead className="bg-slate-100 text-zinc-900 border-b border-gray-300">
                 <tr>
-                  <th className="px-4 py-2 border border-gray-700">Property ID</th>
-                  <th className="px-4 py-2 border border-gray-700">Owner</th>
-                  <th className="px-4 py-2 border border-gray-700">Location</th>
-                  <th className="px-4 py-2 border border-gray-700">Verified</th>
-                  <th className="px-4 py-2 border border-gray-700">Actions</th>
+                  <th className="px-4 py-2">Property ID</th>
+                  <th className="px-4 py-2">Owner</th>
+                  <th className="px-4 py-2">Location</th>
+                  <th className="px-4 py-2">Verified</th>
+                  <th className="px-4 py-2">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {properties.map((property, index) => (
-                  <tr key={index} className="border border-gray-700">
-                    <td className="px-4 py-2">                      <Link href={`/property/${property.id}`} className="text-blue-400 hover:underline">
-
-
-{property.id.toString()}
-
-</Link></td>
+                  <tr
+                    key={index}
+                    className="hover:bg-gray-100 transition-all rounded-lg"
+                  >
+                    <td className="px-4 py-2">
+                      <Link
+                        href={`/property/${property.id}`}
+                        className="text-blue-500 hover:underline"
+                      >
+                        {property.id.toString()}
+                      </Link>
+                    </td>
                     <td className="px-4 py-2">{property.owner}</td>
                     <td className="px-4 py-2">{property.location}</td>
-                    <td className="px-4 py-2">{property.isVerified ? "✅ Yes" : "❌ No"}</td>
+                    <td
+                      className={`px-4 py-2 font-bold ${
+                        property.isVerified ? "text-green-500" : "text-red-500"
+                      }`}
+                    >
+                      {property.isVerified ? "Yes" : "No"}
+                    </td>
                     <td className="px-4 py-2">
                       <button
                         onClick={() => {
                           setSelectedProperty(property);
-                          setSelectedDocument(GetIpfsUrlFromPinata(property.documentHash));
+                          setSelectedDocument(
+                            GetIpfsUrlFromPinata(property.documentHash)
+                          );
                         }}
-                        className="px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+                        className="px-3 py-1 bg-black text-white rounded-md hover:bg-zinc-800"
                       >
                         Inspect
                       </button>
@@ -188,13 +244,32 @@ export default function AdminDashboard() {
 
           {/* Dialog Box */}
           {selectedDocument && (
-            <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+            <div className="fixed inset-0 flex items-center justify-center bg-zinc-900/40 bg-opacity-90">
               <div className="bg-white p-6 rounded-lg max-w-lg text-black">
                 <h2 className="text-xl font-bold mb-4">Property Document</h2>
-                <img src={selectedDocument} alt="Property Document" className="w-full h-auto rounded-md mb-4" />
-                <button onClick={() => detectFraud(selectedProperty.id)} className="mr-2 bg-yellow-500 text-white px-4 py-2 rounded-md">Detect Fraud</button>
-                <button onClick={() => verifyProperty(selectedProperty.id)} className="mr-2 bg-green-500 text-white px-4 py-2 rounded-md">Verify</button>
-                <button onClick={() => setSelectedDocument(null)} className="bg-red-500 text-white px-4 py-2 rounded-md">Close</button>
+                <img
+                  src={selectedDocument}
+                  alt="Property Document"
+                  className="w-full h-auto rounded-md mb-4"
+                />
+                <button
+                  onClick={() => detectFraud(selectedProperty.id)}
+                  className="mr-2 bg-yellow-500 text-white px-4 py-2 rounded-md"
+                >
+                  Detect Fraud
+                </button>
+                <button
+                  onClick={() => verifyProperty(selectedProperty.id)}
+                  className="mr-2 bg-green-500 text-white px-4 py-2 rounded-md"
+                >
+                  Verify
+                </button>
+                <button
+                  onClick={() => setSelectedDocument(null)}
+                  className="bg-red-500 text-white px-4 py-2 rounded-md"
+                >
+                  Close
+                </button>
               </div>
             </div>
           )}

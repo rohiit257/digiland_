@@ -9,6 +9,7 @@ import GetIpfsUrlFromPinata from "@/app/utils";
 import Image from "next/image";
 import Navbar from "@/app/components/Navbar";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 
 const Map = dynamic(() => import("@/app/components/Map"), { ssr: false });
 
@@ -62,13 +63,28 @@ export default function PropertyDetails() {
   async function fetchTransactionHistory() {
     if (!signer) return;
     const contract = new ethers.Contract(CONTRACT_ADDRESS, contractABI.abi, signer);
+  
     try {
-        const transactionData = await contract.getTransactionHistory(id);
-        setTransactions(transactionData);
+      const transactionData = await contract["getTransactionHistory(uint256)"](id);
+      console.log("Fetched Transactions:", transactionData);
+  
+      // Extract the correct data
+      const formattedTransactions = transactionData.map((tx) => ({
+        txHash: tx[3] || "N/A", // Assuming tx[3] is the hash
+        sender: tx[1] || "N/A", // Assuming tx[1] is sender
+        receiver: tx[2] || "N/A", // Assuming tx[2] is receiver
+        propertyId: tx[0]?.toString() || "N/A", // Assuming tx[0] is propertyId
+      }));
+  
+      setTransactions(formattedTransactions);
     } catch (error) {
-        console.error("Error fetching transaction history:", error);
+      console.error("Error fetching transaction history:", error);
     }
   }
+  
+  
+  
+  
 
   async function parseCoordinates(location) {
     const regex = /([-+]?\d{1,2}\.\d+),\s*([-+]?\d{1,3}\.\d+)/;
@@ -95,7 +111,7 @@ export default function PropertyDetails() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen text-white bg-gray-900">
+      <div className="flex items-center justify-center min-h-screen text-white bg-zinc-900">
         <p>Loading property details...</p>
       </div>
     );
@@ -111,11 +127,10 @@ export default function PropertyDetails() {
 
   return (
     <>
-      <Navbar />
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white p-6">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-white text-zinc-800 p-6">
         <h1 className="text-4xl font-bold mb-6">Property Details</h1>
 
-        <div className="bg-gray-800 p-6 rounded-lg shadow-lg w-full max-w-6xl">
+        <div className="bg-zinc-200 p-6 rounded-lg shadow-lg w-full max-w-6xl">
           <div className="flex flex-col md:flex-row items-center md:items-start space-y-6 md:space-y-0 md:space-x-6">
             <div className="flex-shrink-0">
               {property.documentHash && (
@@ -133,8 +148,9 @@ export default function PropertyDetails() {
               <p className="text-lg"><strong>Property No:</strong> {property.propertyNo}</p>
               <p className="text-lg"><strong>Owner:</strong> {property.owner}</p>
               <p className="text-lg"><strong>Location:</strong> {property.location}</p>
-              <p className="text-lg"><strong>Verified:</strong> {property.isVerified ? "✅ Yes" : "❌ No"}</p>
-              <button onClick={() => setDialogOpen(true)} className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">Records</button>
+              <p className="text-lg"><strong>Verified:</strong> {property.isVerified ? "Yes" : "No"}</p>
+              <button onClick={() => setDialogOpen(true)} className="px-4 py-2  bg-black text-white rounded-md hover:bg-zinc-800">Records</button>
+              <Link href={"/admin"} className="px-4 py-2 mr-4 m-6 bg-black text-white rounded-md hover:bg-zinc-800">Back </Link>
             </div>
           </div>
 
@@ -148,18 +164,42 @@ export default function PropertyDetails() {
       </div>
 
       {dialogOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white p-6 rounded-lg max-w-lg">
-            <h2 className="text-xl font-bold mb-4 text-black">Transaction Records</h2>
-            <ul className="text-black">
-              {transactions.length > 0 ? transactions.map((tx, index) => (
-                <li key={index}>Hash: {tx.hash}</li>
-              )) : <p>No transactions found.</p>}
-            </ul>
-            <button onClick={() => setDialogOpen(false)} className="mt-4 px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600">Close</button>
-          </div>
-        </div>
-      )}
+  <div className="fixed inset-0 flex items-center justify-center bg-zinc-600/30 bg-opacity-10">
+    <div className="bg-white p-6 rounded-lg max-w-lg">
+      <h2 className="text-xl font-bold mb-4 text-black">Transaction Records</h2>
+      <ul className="text-black space-y-2">
+        {transactions.length > 0 ? (
+          transactions.map((tx, index) => (
+            <li key={index} className="border p-2 rounded-lg bg-gray-100">
+              <p><strong>Transaction Hash:</strong>  
+                <a
+                  href={`https://etherscan.io/tx/${tx.txHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-500 hover:underline"
+                >
+                  {tx.txHash.substring(0, 10)}...
+                </a>
+              </p>
+              <p><strong>Sender:</strong> {tx.sender}</p>
+              <p><strong>Receiver:</strong> {tx.receiver}</p>
+              <p><strong>Property ID:</strong> {tx.propertyId}</p>
+            </li>
+          ))
+        ) : (
+          <p>No transactions found.</p>
+        )}
+      </ul>
+      <button
+        onClick={() => setDialogOpen(false)}
+        className="mt-4 px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
+      >
+        Close
+      </button>
+    </div>
+  </div>
+)}
+
     </>
   );
 }
